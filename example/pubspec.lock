@@ -139,10 +139,12 @@ packages:
   ds_fimber:
     dependency: transitive
     description:
-      path: "/Users/a/Development/Forks/flutter-fimber/ds_fimber"
-      relative: false
-    source: path
-    version: "0.1.0"
+      path: "."
+      ref: main
+      resolved-ref: f312ecb4b96b58f7384709d8e97d5ad2f911baea
+      url: "https://github.com/AleshaD/ds_fimber"
+    source: git
+    version: "0.0.1"
   fake_async:
     dependency: transitive
     description:
@@ -628,5 +630,5 @@ packages:
     source: hosted
     version: "1.1.0"
 sdks:
-  dart: ">=3.5.0 <4.0.0"
+  dart: ">=3.5.3 <4.0.0"
   flutter: ">=3.24.0"
