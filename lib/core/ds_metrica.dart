@@ -5,7 +5,8 @@ import 'dart:math';
 import 'package:appmetrica_plugin/appmetrica_plugin.dart' as m;
 import 'package:ds_common/core/ds_primitives.dart';
 import 'package:ds_common/core/ds_referrer.dart';
-import 'package:fimber/fimber.dart';
+import 'package:ds_fimber/ds_fimber.dart';
+
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';

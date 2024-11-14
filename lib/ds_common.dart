@@ -13,3 +13,4 @@ export 'core/ds_remote_config.dart';
 export 'widgets/ds_limited_block.dart';
 export 'widgets/ds_limited_text.dart';
 export 'widgets/ds_scale_limiter.dart';
+export 'package:ds_fimber/ds_fimber.dart';

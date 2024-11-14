@@ -3,5 +3,17 @@
     "dart.lineLength": 120,
     "editor.rulers": [
         120
-    ]
+    ],
+    "cSpell.words": [
+        "Adid",
+        "adimp",
+        "admob",
+        "altush",
+        "appmetrica",
+        "gclid",
+        "initialised",
+        "userx",
+        "фимбер"
+    ],
+    "cSpell.enabled": false
 }

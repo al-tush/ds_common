@@ -1,5 +1,6 @@
 import 'package:ds_common/core/ds_logging.dart';
-import 'package:fimber/fimber.dart';
+import 'package:ds_fimber/ds_fimber.dart';
+
 import 'package:flutter_test/flutter_test.dart';
 
 import 'ds_testlogger.dart';

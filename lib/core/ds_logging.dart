@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:fimber/fimber.dart';
+
+import 'package:ds_fimber/ds_fimber.dart';
 import 'package:flutter/foundation.dart';
 
 // static extensions not supported yet https://github.com/dart-lang/language/issues/723

@@ -3,7 +3,8 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
-import 'package:fimber/fimber.dart';
+import 'package:ds_fimber/ds_fimber.dart';
+
 import 'package:firebase_app_installations/firebase_app_installations.dart';
 
 import 'ds_constants.dart';

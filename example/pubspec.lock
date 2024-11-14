@@ -135,7 +135,14 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "1.0.6"
+    version: "1.0.8"
+  ds_fimber:
+    dependency: transitive
+    description:
+      path: "/Users/a/Development/Forks/flutter-fimber/ds_fimber"
+      relative: false
+    source: path
+    version: "0.1.0"
   fake_async:
     dependency: transitive
     description:
@@ -160,14 +167,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.0.0"
-  fimber:
-    dependency: transitive
-    description:
-      name: fimber
-      sha256: "42fcfa33acd43556c1e7ebfc12c2b03893418bc04a07931368c3573e228af2f0"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.7.0"
   firebase_analytics:
     dependency: transitive
     description:

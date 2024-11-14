@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:fimber/fimber.dart';
+import 'package:ds_fimber/ds_fimber.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
@@ -9,7 +9,6 @@ import 'ds_metrica.dart';
 import 'ds_metrica_types.dart';
 
 class DSDebugTree extends DebugTree {
-
   static final Map<String, DSAnsiColor> _colorizeMap = {
     'V': DSAnsiColor.fg(DSAnsiColor.grey(0.5)),
     'D': DSAnsiColor.fg(96),
@@ -24,7 +23,6 @@ class DSDebugTree extends DebugTree {
     super.logLevels = DebugTree.defaultLevels,
     this.useColors = true,
   });
-
 
   @override
   void printLog(String logLine, {String? level}) {
@@ -50,11 +48,13 @@ class DSDebugTree extends DebugTree {
 class DSCrashReportingTree extends LogTree {
   /// Exclude errors with this substrings
   static final excludes = <String>{};
+
   /// Errors will be skipped if description and stack are same as one of [skipCloneErrors] last errors
   static var skipCloneErrors = 0;
-  
+
   /// Only Log Warnings and Exceptions
   static const defaultLevels = <String>['W', 'E'];
+
   /// Same values as android.util.Log
   static const _priorities = <String, int>{
     'V': 2,
@@ -65,14 +65,21 @@ class DSCrashReportingTree extends LogTree {
   };
   final List<String> logLevels;
   final _lastErrors = <String>[];
-  
+
   @override
   List<String> getLevels() => logLevels;
 
   DSCrashReportingTree({this.logLevels = defaultLevels});
 
   @override
-  void log(String level, String message, {String? tag, dynamic ex, StackTrace? stacktrace}) {
+  void log(
+    String level,
+    String message, {
+    String? tag,
+    dynamic ex,
+    StackTrace? stacktrace,
+    Map<String, String?>? attributes,
+  }) {
     if (excludes.any((e) => message.contains(e))) return;
     if (skipCloneErrors > 0) {
       final text = '$message $stacktrace';
@@ -82,7 +89,7 @@ class DSCrashReportingTree extends LogTree {
       }
       _lastErrors.insert(0, text);
     }
-    
+
     if (!kIsWeb) {
       FirebaseCrashlytics.instance.setCustomKey('priority', _priorities[level] ?? 0);
       FirebaseCrashlytics.instance.recordError('[$level] $message', stacktrace);
@@ -92,9 +99,8 @@ class DSCrashReportingTree extends LogTree {
     if (!message.contains('failed to connect to yandex')) {
       unawaited(DSMetrica.reportError(
         message: '[$level] $message',
-        errorDescription: stacktrace != null
-            ? AppMetricaErrorDescription(stacktrace, message: message, type: '[$level]')
-            : null,
+        errorDescription:
+            stacktrace != null ? AppMetricaErrorDescription(stacktrace, message: message, type: '[$level]') : null,
       ));
       // unawaited(Sentry.captureException(
       //   ex ?? '[$level] $message',
@@ -107,9 +113,11 @@ class DSCrashReportingTree extends LogTree {
         stackTrace: stacktrace ?? StackTrace.empty,
         deep: 4,
       );
+      final Map<String, String> additionalAttributes = attributes?.map((key, v) => MapEntry(key, v.toString())) ?? {};
       DSMetrica.reportEvent('[$level] $message', attributes: {
         'error_priority': _priorities[level] ?? 0,
         'stack': '$limStack',
+        ...additionalAttributes,
       });
     }
   }
