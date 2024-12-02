@@ -318,6 +318,16 @@ abstract class DSMetrica {
         attrs.addAll(attributes);
       }
 
+      if (kDebugMode) {
+        for (final a in attrs.entries) {
+          if (a.value is String) continue;
+          if (a.value is int) continue;
+          if (a.value is bool) continue;
+          if (a.value is double) continue;
+          throw Exception('DSMetrica: Unsupported attribute type ${a.key} is ${a.value.runtimeType}');
+        }
+      }
+
       UserX.addEvent(eventName, attrs.map<String, String>((key, value) => MapEntry(key, '$value')));
 
       logDebug('$eventName $attrs', stackSkip: stackSkip, stackDeep: 5);
@@ -359,7 +369,7 @@ abstract class DSMetrica {
   }
 
   /// AppMetrica wrapper
-  static Future<void> reportAdRevenue(AdRevenue revenue) async {
+  static Future<void> reportAdRevenue(AppMetricaAdRevenue revenue) async {
     if (kIsWeb || !Platform.isAndroid && !Platform.isIOS) return;
     await m.AppMetrica.reportAdRevenue(revenue);
   }

@@ -1,5 +1,3 @@
-library ds_common;
-
 export 'core/ds_constants.dart';
 export 'core/fimber/ds_fimber_service.dart';
 export 'core/fimber/ds_fimber_trees.dart';

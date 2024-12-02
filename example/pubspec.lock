@@ -136,15 +136,6 @@ packages:
       relative: true
     source: path
     version: "1.0.8"
-  ds_fimber:
-    dependency: transitive
-    description:
-      path: "."
-      ref: main
-      resolved-ref: f312ecb4b96b58f7384709d8e97d5ad2f911baea
-      url: "https://github.com/AleshaD/ds_fimber"
-    source: git
-    version: "0.0.1"
   fake_async:
     dependency: transitive
     description:

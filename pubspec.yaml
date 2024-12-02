@@ -1,6 +1,6 @@
 name: ds_common
 description: Common library of altush Flutter projects - wraps Yandex Metrica, Adjust, Firebase, Fimber, etc.
-version: 1.0.8
+version: 1.0.9
 repository: https://github.com/al-tush/ds_common
 
 environment:

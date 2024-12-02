@@ -1,3 +1,6 @@
+## 1.0.9
+- add unsupported types check by DSMetrica in kDebugMode
+
 ## 1.0.8
 - improve userx starting (yandexId parsing changed)
 
