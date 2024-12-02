@@ -2,15 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:isolate';
 import 'dart:ui';
-
-import 'package:ds_fimber/ds_fimber.dart';
+import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'ds_fimber_trees.dart';
-import 'ds_metrica.dart';
+import '../ds_metrica.dart';
 
 abstract class DSFimberService {
   DSFimberService._();

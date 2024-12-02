@@ -5,7 +5,7 @@ import 'package:adjust_sdk/adjust.dart';
 import 'package:adjust_sdk/adjust_ad_revenue.dart';
 import 'package:adjust_sdk/adjust_attribution.dart';
 import 'package:adjust_sdk/adjust_config.dart';
-import 'package:ds_fimber/ds_fimber.dart';
+import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:flutter/foundation.dart';
 
 import 'ds_constants.dart';

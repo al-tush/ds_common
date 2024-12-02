@@ -1,5 +1,4 @@
-
-import 'package:ds_fimber/ds_fimber.dart';
+import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:tuple/tuple.dart';
 

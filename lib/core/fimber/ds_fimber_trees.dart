@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:ds_fimber/ds_fimber.dart';
+import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 
-import 'ds_logging.dart';
-import 'ds_metrica.dart';
-import 'ds_metrica_types.dart';
+import '../ds_logging.dart';
+import '../ds_metrica.dart';
+import '../ds_metrica_types.dart';
 
 class DSDebugTree extends DebugTree {
   static final Map<String, DSAnsiColor> _colorizeMap = {

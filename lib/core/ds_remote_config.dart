@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 
-
-import 'package:ds_fimber/ds_fimber.dart';
+import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 
 import 'ds_constants.dart';
