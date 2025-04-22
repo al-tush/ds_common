@@ -60,56 +60,64 @@ class DSReferrer {
 
       var referrer = prefs.getString(_referrerKey) ?? '';
       try {
-        if (!forceFBReferrer && referrer.isEmpty && Platform.isAndroid) {
-          // Get Android referrer
-          try {
-            referrer = await DSInternal.platform.invokeMethod('fetchInstallReferrer');
-          } catch (e, stack) {
-            Fimber.e('$e', stacktrace: stack);
-            return;
-          }
-          await prefs.setString(_referrerKey, referrer);
-        }
-
-        if (referrer.isEmpty && (Platform.isIOS || forceFBReferrer)) {
-          if (region.isNotEmpty || fbV2Url.isNotEmpty) {
-            // Get referrer
-            referrer = 'null';
-            try {
-              final startTime = DateTime.timestamp();
-              final int respCode;
-              if (fbV2Url.isEmpty) {
-                final res = await FirebaseFunctions.instanceFor(region: region).httpsCallable('get_referrer').call<String>();
-                respCode = 200;
-                referrer = res.data;
-              } else {
-                final res = await http.get(
-                  Uri.parse(fbV2Url),
-                );
-                respCode = res.statusCode;
-                if (respCode == 200) {
-                  referrer = res.body;
+        if (referrer.isEmpty) {
+          final res = await Future.wait<String>([
+            if (Platform.isIOS || forceFBReferrer)
+                  () async {
+                assert(region.isNotEmpty || fbV2Url.isNotEmpty, 'fbRegion should be assigned (get_referrer cloud function must be deployed)');
+                try {
+                  final startTime = DateTime.timestamp();
+                  final int respCode;
+                  if (fbV2Url.isEmpty) {
+                    final res = await FirebaseFunctions.instanceFor(region: region).httpsCallable('get_referrer').call<String>();
+                    respCode = 200;
+                    referrer = res.data;
+                  } else {
+                    final res = await http.get(
+                      Uri.parse(fbV2Url),
+                    );
+                    respCode = res.statusCode;
+                    if (respCode == 200) {
+                      referrer = res.body;
+                    }
+                  }
+                  final loadTime = DateTime.timestamp().difference(startTime);
+                  DSMetrica.reportEvent('fb_referrer', attributes: {
+                    'value': referrer,
+                    'resp_code': respCode,
+                    'referrer_load_seconds': loadTime.inSeconds,
+                    'referrer_load_milliseconds': loadTime.inMilliseconds,
+                  });
+                  final p = referrer.indexOf('?');
+                  if (p >= 0) {
+                    referrer = referrer.substring(p + 1);
+                  }
+                  return referrer;
+                } catch (e, stack) {
+                  Fimber.e('fb_referrer $e', stacktrace: stack);
+                  return 'err_fb';
                 }
-              }
-              final loadTime = DateTime.timestamp().difference(startTime);
-              DSMetrica.reportEvent('fb_referrer', attributes: {
-                'value': referrer,
-                'resp_code': respCode,
-                'referrer_load_seconds': loadTime.inSeconds,
-                'referrer_load_milliseconds': loadTime.inMilliseconds,
-              });
-              final p = referrer.indexOf('?');
-              if (p >= 0) {
-                referrer = referrer.substring(p + 1);
-              }
-            } catch (e, stack) {
-              Fimber.e('fb_referrer $e', stacktrace: stack);
-              referrer = 'err';
-            }
-            await prefs.setString(_referrerKey, referrer);
-          } else {
-            assert(false, 'fbRegion should be assigned (get_referrer cloud function must be deployed)');
-          }
+              } (),
+            if (Platform.isAndroid)
+                  () async {
+                try {
+                  final startTime = DateTime.timestamp();
+                  final ref =  await DSInternal.platform.invokeMethod('fetchInstallReferrer') as String;
+                  final loadTime = DateTime.timestamp().difference(startTime);
+                  DSMetrica.reportEvent('android_referrer', attributes: {
+                    'value': referrer,
+                    'referrer_load_seconds': loadTime.inSeconds,
+                    'referrer_load_milliseconds': loadTime.inMilliseconds,
+                  });
+                  return ref;
+                } catch (e, stack) {
+                  Fimber.e('android_referrer $e', stacktrace: stack);
+                  return 'err_android';
+                }
+              } (),
+          ]);
+          referrer = res.join('&');
+          await prefs.setString(_referrerKey, referrer);
         }
 
         Fimber.i('ds_referrer=$referrer');
