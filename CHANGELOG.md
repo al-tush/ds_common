@@ -1,3 +1,6 @@
+## 2.4.1
+- fix android referrer if forceFBReferrer parameter set to true (universal fb_referrer)
+
 ## 2.4.0
 - add universal fb_referrer support for DSReferrer
 
