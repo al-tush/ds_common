@@ -3,6 +3,8 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:amplitude_flutter/amplitude.dart';
+import 'package:amplitude_flutter/configuration.dart';
+import 'package:amplitude_flutter/events/base_event.dart';
 import 'package:appmetrica_plugin/appmetrica_plugin.dart' as m;
 import 'package:ds_common/core/ds_primitives.dart';
 import 'package:ds_common/core/ds_referrer.dart';
@@ -46,7 +48,7 @@ abstract class DSMetrica {
   static var _eventId = 0;
   static var _uxCamKey = '';
   static var _amplitudeKey = '';
-  static final _amplitude = Amplitude.getInstance();
+  static Amplitude? _amplitude;
   static var _yandexId = '';
   static late final bool _debugModeSend;
   static var _uxCamInitializing = false;
@@ -74,12 +76,12 @@ abstract class DSMetrica {
 
   static Future<String?> getAmplitudeDeviceId() async {
     if (_amplitudeKey.isEmpty) return null;
-    return await _amplitude.getDeviceId();
+    return await _amplitude!.getDeviceId();
   }
 
   static Future<String?> getAmplitudeUserId() async {
     if (_amplitudeKey.isEmpty) return null;
-    return await _amplitude.getUserId();
+    return await _amplitude!.getUserId();
   }
 
   /// Initialize DSMetrica. Must call before the first use
@@ -126,7 +128,9 @@ abstract class DSMetrica {
     } ());
     if (_amplitudeKey.isNotEmpty) {
       waits.add(() async {
-        await _amplitude.init(_amplitudeKey);
+        _amplitude = Amplitude(Configuration(
+          apiKey: _amplitudeKey,
+        ));
       }());
     }
 
@@ -390,7 +394,7 @@ abstract class DSMetrica {
         }());
       }
       if (amplitudeSend && _amplitudeKey.isNotEmpty) {
-        unawaited(_amplitude.logEvent(eventName, eventProperties: attrs));
+        unawaited(_amplitude!.track(BaseEvent(eventName, eventProperties: attrs)));
       }
       if (adjustSend) {
         unawaited(() async {
