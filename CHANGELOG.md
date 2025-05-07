@@ -1,3 +1,6 @@
+## 2.5.0
+- update flutter_uxcam and amplitude_flutter to support Flutter 3.29
+
 ## 2.4.1
 - fix android referrer if forceFBReferrer parameter set to true (universal fb_referrer)
 
