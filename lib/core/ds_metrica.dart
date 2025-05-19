@@ -448,7 +448,7 @@ abstract class DSMetrica {
     }
 
     if (!DSRemoteConfig.I.isInitialized) {
-      await DSRemoteConfig.I.waitForInit();
+      await DSRemoteConfig.I.waitForInit(maxWait: const Duration(seconds: 15));
     }
 
     var val = DSRemoteConfig.I.getUXCamPercent();
