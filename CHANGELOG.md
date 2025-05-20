@@ -1,3 +1,6 @@
+## 2.5.1
+- increase startUXCam RC timeout from 5 sec to 15
+
 ## 2.5.0
 - update flutter_uxcam and amplitude_flutter to support Flutter 3.29
 
