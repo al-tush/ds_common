@@ -1,3 +1,6 @@
+## 2.6.0
+- ugly hotfix to pervent AppMetrica profiles splitting (set lockMetricaProfile to true to use it)
+
 ## 2.5.1
 - increase startUXCam RC timeout from 5 sec to 15
 
