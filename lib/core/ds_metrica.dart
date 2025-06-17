@@ -50,6 +50,7 @@ abstract class DSMetrica {
   static var _amplitudeKey = '';
   static Amplitude? _amplitude;
   static var _yandexId = '';
+  static late final bool _lockMetricaProfile;
   static late final bool _debugModeSend;
   static var _uxCamInitializing = false;
   static var _uxCamRunning = false;
@@ -93,6 +94,7 @@ abstract class DSMetrica {
     String uxCamKey = '',
     String amplitudeKey = '',
     DSMetricaUserIdType userIdType = DSMetricaUserIdType.none,
+    bool lockMetricaProfile = false,
     bool debugModeSend = false,
   }) async {
     if (_isInitialized) {
@@ -106,6 +108,7 @@ abstract class DSMetrica {
     _amplitudeKey = amplitudeKey;
     _debugModeSend = debugModeSend;
     _userIdType = userIdType;
+    _lockMetricaProfile = lockMetricaProfile;
 
     final waits = <Future>[];
 
@@ -205,6 +208,7 @@ abstract class DSMetrica {
   /// Set user profile ID
   static Future<void> setUserProfileID(String userProfileID) async {
     _userProfileID = userProfileID;
+    if (_lockMetricaProfile) return;
     await Future.wait([
       m.AppMetrica.setUserProfileID(userProfileID),
       if (Platform.isAndroid)
