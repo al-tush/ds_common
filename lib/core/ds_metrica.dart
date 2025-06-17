@@ -155,8 +155,8 @@ abstract class DSMetrica {
       final adid = DSAdjust.getAdid();
       if (_userIdType == DSMetricaUserIdType.adjustId && adid != null) {
         unawaited(DSMetrica.setUserProfileID(adid));
+        Fimber.d('DSMetrica updated by Adjust adid=$adid');
       }
-      Fimber.d('DSMetrica updated by Adjust adid=$adid');
       unawaited(m.AppMetrica.reportExternalAttribution(m.AppMetricaExternalAttribution.adjust(
         adid: adid,
         trackerName: data.trackerName,
