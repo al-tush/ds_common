@@ -1,3 +1,6 @@
+## 2.6.1
+- uxcam upadated
+
 ## 2.6.0
 - ugly hotfix to pervent AppMetrica profiles splitting (set lockMetricaProfile to true to use it)
 
