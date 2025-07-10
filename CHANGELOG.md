@@ -1,3 +1,6 @@
+## 2.7.0
+- added adjust send methods: global callback and partner parameter
+
 ## 2.6.1
 - uxcam upadated
 
