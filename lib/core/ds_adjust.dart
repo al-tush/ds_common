@@ -145,4 +145,12 @@ abstract class DSAdjust {
     }
     _lastAttribution = data;
   }
+
+  static void sendGlobalCallbackParameter(String key, String value) {
+    Adjust.addGlobalCallbackParameter(key, value);
+  }
+
+  static void sendGlobalPartnerParameter(String key, String value) {
+    Adjust.addGlobalPartnerParameter(key, value);
+  }
 }
