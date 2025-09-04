@@ -13,10 +13,10 @@ packages:
     dependency: transitive
     description:
       name: adjust_sdk
-      sha256: "1618a1166a18ef0e45ea4f2d043b9f9ff58d30e4aa8d51a5f9404308b0faa782"
+      sha256: e1f1f9ee8d3370b7ba55bccd1b65053ba1bcea53de378eb510c8c808ffaefa34
       url: "https://pub.dev"
     source: hosted
-    version: "5.1.0"
+    version: "5.4.2"
   amplitude_flutter:
     dependency: transitive
     description:
