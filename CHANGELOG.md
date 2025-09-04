@@ -1,3 +1,6 @@
+## 2.7.1
+- adjust updated
+
 ## 2.7.0
 - added adjust send methods: global callback and partner parameter
 
