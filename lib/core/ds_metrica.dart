@@ -30,7 +30,7 @@ typedef DSMetricaAttrsCallback = Map<String, Object> Function();
 enum EventSendingType { everyTime, oncePerAppLifetime }
 
 enum DSMetricaUserIdType {
-  /// Not initialize Metrica.setUserProfileID(...)
+  /// Setup Metrica.setUserProfileID('') (empty value)
   none,
   /// Use Metrica.setUserProfileID(DEVICE_ID)
   @Deprecated('Legacy only. Prefer to use adjustId in new apps')
@@ -141,11 +141,12 @@ abstract class DSMetrica {
 
     switch (_userIdType) {
       case DSMetricaUserIdType.none:
+        await DSMetrica.setUserProfileID('');
         break;
       case DSMetricaUserIdType.adjustId:
         break;
-        // ignore: deprecated_member_use_from_same_package
-        case DSMetricaUserIdType.deviceId:
+      // ignore: deprecated_member_use_from_same_package
+      case DSMetricaUserIdType.deviceId:
         unawaited(() async {
           final id = await getDeviceId();
           await DSMetrica.setUserProfileID(id);
@@ -156,9 +157,15 @@ abstract class DSMetrica {
 
     DSAdjust.registerAttributionCallback((data) {
       final adid = DSAdjust.getAdid();
-      if (_userIdType == DSMetricaUserIdType.adjustId && adid != null) {
-        unawaited(DSMetrica.setUserProfileID(adid));
-        Fimber.d('DSMetrica updated by Adjust adid=$adid');
+      if (_userIdType == DSMetricaUserIdType.adjustId) {
+        if (adid != null) {
+          unawaited(DSMetrica.setUserProfileID(adid));
+          Fimber.d('DSMetrica updated by Adjust adid=$adid');
+        } else {
+          if (DSMetrica.userProfileID() == null) {
+            unawaited(DSMetrica.setUserProfileID(''));
+          }
+        }
       }
       unawaited(m.AppMetrica.reportExternalAttribution(m.AppMetricaExternalAttribution.adjust(
         adid: adid,
