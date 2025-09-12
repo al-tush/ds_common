@@ -1,6 +1,6 @@
 name: ds_common
 description: Common library of altush Flutter projects - wraps AppMetrica, Adjust, Firebase, Fimber, etc.
-version: 2.7.1
+version: 2.7.2
 repository: https://github.com/al-tush/ds_common
 
 environment:

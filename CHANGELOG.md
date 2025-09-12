@@ -1,3 +1,7 @@
+## 2.7.2
+- add DSMetrica.getYandexDeviceIdHash() method
+- set empty userProfileID for failed or unappliable flows
+
 ## 2.7.1
 - adjust updated
 
