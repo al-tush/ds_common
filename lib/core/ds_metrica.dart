@@ -223,6 +223,17 @@ abstract class DSMetrica {
     ]);
   }
 
+  static String? _deviceIdHashCash;
+
+  static Future<String> getYandexDeviceIdHash() async {
+    if (_deviceIdHashCash != null) return _deviceIdHashCash!;
+    final startupParams = await m.AppMetrica.requestStartupParams([m.AppMetricaStartupParams.deviceIdHashKey]);
+    if (startupParams.result?.deviceIdHash == null) return '';
+    _deviceIdHashCash = startupParams.result!.deviceIdHash!;
+    Fimber.d('yandexDeviceIdHash=$_deviceIdHashCash');
+    return _deviceIdHashCash!;
+  }
+
   /// Get legacy device id. Recommended to use other ID instead
   static Future<String> getDeviceId() async {
     if (kIsWeb) {
