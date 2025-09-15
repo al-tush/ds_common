@@ -1,3 +1,6 @@
+## 2.7.3
+- make property [lockedMetricaProfile] public
+
 ## 2.7.2
 - add DSMetrica.getYandexDeviceIdHash() method
 - set empty userProfileID for failed or unappliable flows
