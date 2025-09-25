@@ -4,8 +4,8 @@ version: 2.7.3
 repository: https://github.com/al-tush/ds_common
 
 environment:
-  sdk: ">=3.5.0 <4.0.0"
-  flutter: ">=3.24.0"
+  sdk: ">=3.9.2 <4.0.0"
+  flutter: ">=3.35.0"
 
 dependencies:
   flutter:
@@ -14,21 +14,21 @@ dependencies:
     sdk: flutter
 
   meta: ^1.9.0
-  firebase_core: ">=2.3.0 <5.0.0"
-  firebase_crashlytics: ">=3.2.0 <6.0.0"
+  firebase_core: ">=3.0.0 <7.0.0"
+  firebase_crashlytics: ">=3.2.0 <7.0.0"
   shared_preferences: ^2.3.3
-  http: ^1.2.0
-  flutter_uxcam: ^2.6.1
-  appmetrica_plugin: ^3.1.0
+  http: ^1.4.0
+  flutter_uxcam: ^2.7.1
+  appmetrica_plugin: ^3.3.0
   decimal: ^3.0.2
-  package_info_plus: ^8.0.0
+  package_info_plus: ^9.0.0
   firebase_remote_config: ">=4.0.0 <7.0.0"
-  firebase_app_installations: ">=0.2.0 <0.4.0"
-  firebase_analytics: ">=10.0.0 <12.0.0"
-  cloud_functions: ">=4.0.0 <6.0.0"
-  cloud_firestore: ">=4.0.0 <6.0.0"
+  firebase_app_installations: ">=0.2.0 <0.5.0"
+  firebase_analytics: ">=10.0.0 <13.0.0"
+  cloud_functions: ">=4.0.0 <7.0.0"
+  cloud_firestore: ">=4.0.0 <7.0.0"
   adjust_sdk: ^5.4.2
-  amplitude_flutter: ^4.3.1
+  amplitude_flutter: ^4.3.7
 
 dev_dependencies:
   flutter_test:
