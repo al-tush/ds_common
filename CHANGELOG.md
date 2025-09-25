@@ -1,3 +1,6 @@
+## 2.7.4
+- update to Flutter 3.35 and rollup deps
+
 ## 2.7.3
 - make property [lockedMetricaProfile] public
 
