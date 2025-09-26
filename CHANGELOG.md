@@ -1,3 +1,6 @@
+## 2.7.5
+- fix for flutter web
+
 ## 2.7.4
 - update to Flutter 3.35 and rollup deps
 
