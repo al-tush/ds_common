@@ -143,7 +143,9 @@ abstract class DSMetrica {
 
     switch (_userIdType) {
       case DSMetricaUserIdType.none:
-        await DSMetrica.setUserProfileID('');
+        if (!kIsWeb) {
+          await DSMetrica.setUserProfileID('');
+        }
         break;
       case DSMetricaUserIdType.adjustId:
         break;
@@ -220,7 +222,7 @@ abstract class DSMetrica {
     if (_lockedMetricaProfile) return;
     await Future.wait([
       m.AppMetrica.setUserProfileID(userProfileID),
-      if (Platform.isAndroid)
+      if (!kIsWeb && Platform.isAndroid)
         DSInternal.platform.invokeMethod('setUserProfile', userProfileID),
     ]);
   }
@@ -350,13 +352,15 @@ abstract class DSMetrica {
             baseAttrs[key] = value;
           });
         }
-        if (Platform.isIOS) {
-          addFromData('partner');
-        } else {
-          addFromData('utm_source');
-          addFromData('utm_campaign');
-          addFromData('utm_medium');
-          addFromData('gclid');
+        if (!kIsWeb) {
+          if (Platform.isIOS) {
+            addFromData('partner');
+          } else {
+            addFromData('utm_source');
+            addFromData('utm_campaign');
+            addFromData('utm_medium');
+            addFromData('gclid');
+          }
         }
       }
 
