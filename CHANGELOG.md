@@ -1,3 +1,6 @@
+## 2.7.6
+- [breaking change] event 'remote config loaded' renamed to remote_config_loaded and send to Firebase Analytics https://app.asana.com/1/1207919102526998/project/1207987727410001/task/1211654572044679?focus=true
+
 ## 2.7.5
 - fix for flutter web
 
