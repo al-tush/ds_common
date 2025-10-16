@@ -63,7 +63,7 @@ class DSRemoteConfig extends ChangeNotifier {
       final attrs = _remoteConfig.getAll().map<String, Object>((key, value) => MapEntry(key, value.asString()));
       attrs['remote_config_load_seconds'] = DateTime.now().difference(startTime).inSeconds;
       attrs['remote_config_loaded'] = _isFullyInitialized;
-      DSMetrica.reportEvent('remote config loaded', attributes: attrs);
+      DSMetrica.reportEvent('remote_config_loaded', fbSend: true, attributes: attrs);
       _isInitDone = true;
       notifyListeners();
       onLoaded?.call();
