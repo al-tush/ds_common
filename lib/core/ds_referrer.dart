@@ -31,6 +31,9 @@ class DSReferrer {
 
   final _changedCallbacks = <DSReferrerCallback>{};
 
+  String? _faultClientIp;
+  String? faultClientIp => _faultClientIp;
+
   /// Call this method is you don't need referrer in your app
   void noReferrer() {
     assert(!_isInitialized, 'Duplicate initialization');
@@ -81,10 +84,15 @@ class DSReferrer {
                       referrer = res.body;
                     }
                   }
+                  if (respCode == 404) {
+                    _faultClientIp = res.body;
+                  }
                   final loadTime = DateTime.timestamp().difference(startTime);
                   DSMetrica.reportEvent('fb_referrer', attributes: {
                     'value': referrer,
                     'resp_code': respCode,
+                    if (_faultClientIp != null)
+                      'fault_client_ip': _faultClientIp.toString(),
                     'referrer_load_seconds': loadTime.inSeconds,
                     'referrer_load_milliseconds': loadTime.inMilliseconds,
                   });
