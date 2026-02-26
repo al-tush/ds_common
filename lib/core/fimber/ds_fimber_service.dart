@@ -9,7 +9,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 
 import 'ds_fimber_trees.dart';
-import '../ds_metrica.dart';
 
 abstract class DSFimberService {
   DSFimberService._();
@@ -19,13 +18,26 @@ abstract class DSFimberService {
   static var _isInitializedInMain = false;
   static var _isInitializedInIsolate = false;
 
+  /// Единая точка инициализации: Firebase (если передан [firebaseOptions]), Fimber, Crashlytics.
+  /// Вызывайте в самом начале main() после WidgetsFlutterBinding.ensureInitialized(),
+  /// до создания DSRemoteConfig, DSReferrer и других сервисов, использующих Firebase.
   static Future<void> initFimberInMain(FirebaseOptions? firebaseOptions) async {
     if (_isInitializedInMain) return;
     _isInitializedInMain = true;
 
-    FutureBuilder.debugRethrowError = true;
-
     WidgetsFlutterBinding.ensureInitialized();
+
+    if (firebaseOptions != null && Firebase.apps.isEmpty) {
+      try {
+        await Firebase.initializeApp(options: firebaseOptions);
+      } catch (e, trace) {
+        // Логируем через print, т.к. Fimber ещё не настроен
+        debugPrint('DSFimberService: Firebase.initializeApp failed: $e');
+        debugPrint('$trace');
+      }
+    }
+
+    FutureBuilder.debugRethrowError = true;
 
     if (kDebugMode) {
       Fimber.plantTree(DSDebugTree(useColors: true));
@@ -39,12 +51,6 @@ abstract class DSFimberService {
       Fimber.e('$error', stacktrace: stack);
       return true;
     };
-
-    try {
-      await Firebase.initializeApp(options: firebaseOptions);
-    } catch (e, trace) {
-      Fimber.e('$e', stacktrace: trace);
-    }
 
     if (!kIsWeb) {
       Isolate.current.addErrorListener(RawReceivePort((pair) async {
@@ -63,7 +69,8 @@ abstract class DSFimberService {
       if (kDebugMode) {
         await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(false);
       }
-      unawaited(FirebaseCrashlytics.instance.setUserIdentifier(DSMetrica.yandexId));
+      // User identifier передаётся в Crashlytics из DSMetrica.init() после получения yandexId
+      // (initFimberInMain вызывается до DSMetrica.init(), поэтому здесь Metrica ещё не готова)
 
       IsolateNameServer.removePortNameMapping(_portName);
       final port = ReceivePort(_portName);

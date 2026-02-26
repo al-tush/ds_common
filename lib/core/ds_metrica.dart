@@ -7,25 +7,38 @@ import 'package:amplitude_flutter/configuration.dart';
 import 'package:amplitude_flutter/events/base_event.dart';
 import 'package:appmetrica_plugin/appmetrica_plugin.dart' as m;
 import 'package:ds_common/core/ds_primitives.dart';
-import 'package:ds_common/core/ds_referrer.dart';
 import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 
 
 import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_uxcam/flutter_uxcam.dart';
 
+import 'contracts/ds_contracts.dart';
 import 'ds_adjust.dart';
 import 'ds_app_state.dart';
 import 'ds_constants.dart';
 import 'ds_internal.dart';
 import 'ds_logging.dart';
 import 'ds_metrica_types.dart';
-import 'ds_prefs.dart';
-import 'ds_remote_config.dart';
 
 typedef DSMetricaAttrsCallback = Map<String, Object> Function();
+
+/// Зависимости для [DSMetrica]. Передаётся в [DSMetrica.init].
+class DSMetricaDeps {
+  const DSMetricaDeps({
+    required this.prefs,
+    required this.constants,
+    this.remoteConfig,
+    this.referrer,
+  });
+  final IDSPrefs prefs;
+  final IDSConstants constants;
+  final IDSRemoteConfig? remoteConfig;
+  final IDSReferrer? referrer;
+}
 
 enum EventSendingType { everyTime, oncePerAppLifetime }
 
@@ -67,6 +80,7 @@ abstract class DSMetrica {
 
   static var _userIdType = DSMetricaUserIdType.none;
   static String? _userProfileID;
+  static DSMetricaDeps? _deps;
 
   static DSMetricaUserIdType get userIdType => _userIdType;
 
@@ -87,11 +101,10 @@ abstract class DSMetrica {
     return await _amplitude!.getUserId();
   }
 
-  /// Initialize DSMetrica. Must call before the first use
-  /// [yandexKey] - API key of Yandex App Metrica
-  /// [uxCamKey] - API key of UXCam
-  /// [forceSend] - send events in debug mode too
+  /// Initialize DSMetrica. Must call before the first use.
+  /// [deps] — префы, константы, опционально remote config и referrer.
   static Future<void> init({
+    required DSMetricaDeps deps,
     required String yandexKey,
     String uxCamKey = '',
     String amplitudeKey = '',
@@ -99,6 +112,7 @@ abstract class DSMetrica {
     bool lockMetricaProfile = false,
     bool debugModeSend = false,
   }) async {
+    _deps = deps;
     if (_isInitialized) {
       Fimber.e('DSMetrica is already initialised', stacktrace: StackTrace.current);
       return;
@@ -208,6 +222,8 @@ abstract class DSMetrica {
         Fimber.d('yandexId=$yandexId');
         if (_yandexId.isEmpty) {
           Fimber.e('yandexId was not initialized', stacktrace: StackTrace.current);
+        } else {
+          unawaited(FirebaseCrashlytics.instance.setUserIdentifier(_yandexId));
         }
       }());
     }
@@ -295,13 +311,15 @@ abstract class DSMetrica {
 
   /// Call this method on app start and [AppLifecycleState.resumed]
   static void tryUpdateAppSessionId() {
-    final appSuspended = DateTime.now().difference(DSPrefs.I.getAppLastUsed());
+    final prefs = _deps?.prefs;
+    if (prefs == null) return;
+    final appSuspended = DateTime.now().difference(prefs.getAppLastUsed());
     if (appSuspended.inMinutes >= 1) {
-      DSPrefs.I.setAppLastUsed(DateTime.now());
-      final newSession = DSPrefs.I.getSessionId() + 1;
-      DSPrefs.I.setSessionId(newSession);
-      if (_uxCamRunning) {
-        final sessions = DSRemoteConfig.I.getUXCamSessions();
+      prefs.setAppLastUsed(DateTime.now());
+      final newSession = prefs.getSessionId() + 1;
+      prefs.setSessionId(newSession);
+      if (_uxCamRunning && _deps?.remoteConfig != null) {
+        final sessions = _deps!.remoteConfig!.getUXCamSessions();
         if (sessions != 0 && sessions < newSession) {
           stopUXCam();
         }
@@ -324,6 +342,7 @@ abstract class DSMetrica {
         int stackSkip = 1,
         EventSendingType eventSendingType = EventSendingType.everyTime,
       }) async {
+    if (!_isInitialized) return;
     if (kIsWeb || !Platform.isAndroid && !Platform.isIOS) return;
 
     if (eventSendingType == EventSendingType.oncePerAppLifetime && _isEventAlreadySendPerLifetime(eventName)) {
@@ -344,9 +363,8 @@ abstract class DSMetrica {
         baseAttrs.addAll(handler());
       }
 
-      if (DSReferrer.isInitialized) {
-        // Add referrer's attributes
-        final data = DSReferrer.I.getReferrerFields();
+      if (_deps?.referrer?.isInitialized == true) {
+        final data = _deps!.referrer!.getReferrerFields();
         void addFromData(String key) {
           data[key]?.let((value) {
             baseAttrs[key] = value;
@@ -364,8 +382,8 @@ abstract class DSMetrica {
         }
       }
 
-      DSPrefs.I.setAppLastUsed(DateTime.now());
-      final sessionId = DSPrefs.I.getSessionId();
+      _deps?.prefs.setAppLastUsed(DateTime.now());
+      final sessionId = _deps?.prefs.getSessionId() ?? 0;
 
       baseAttrs['session_id'] = sessionId;
       baseAttrs['event_id'] = _eventId;
@@ -457,6 +475,7 @@ abstract class DSMetrica {
 
   /// AppMetrica wrapper
   static Future<void> reportError({String? message, AppMetricaErrorDescription? errorDescription}) async {
+    if (!_isInitialized) return;
     if (kIsWeb || !Platform.isAndroid && !Platform.isIOS) return;
     await m.AppMetrica.reportError(message: message, errorDescription: errorDescription);
   }
@@ -465,34 +484,42 @@ abstract class DSMetrica {
   static Future<void> tryStartUXCam() async {
     if (_uxCamRunning || _uxCamInitializing) return;
 
-    assert(DSConstants.isInitialized);
+    final constants = _deps?.constants;
+    final remoteConfig = _deps?.remoteConfig;
+    final prefs = _deps?.prefs;
+    if (constants == null || prefs == null) return;
+    assert(constants.isInitialized);
 
     if (kDebugMode && !_debugModeSend) return;
     if (kIsWeb || !Platform.isAndroid && !Platform.isIOS) return;
 
-    if (DSConstants.I.isInternalVersion) {
+    if (constants.isInternalVersion) {
       await startUXCam();
       return;
     }
 
-    if (!DSRemoteConfig.I.isInitialized) {
-      await DSRemoteConfig.I.waitForInit(maxWait: const Duration(seconds: 15));
+    if (remoteConfig == null || !remoteConfig.isInitialized) {
+      if (remoteConfig != null) {
+        await remoteConfig.waitForInit(maxWait: const Duration(seconds: 15));
+      } else {
+        return;
+      }
     }
 
-    var val = DSRemoteConfig.I.getUXCamPercent();
+    var val = remoteConfig.getUXCamPercent();
     if (val == 0) {
-      await DSRemoteConfig.I.waitForFullInit(maxWait: const Duration(seconds: 20));
-      val = DSRemoteConfig.I.getUXCamPercent();
+      await remoteConfig.waitForFullInit(maxWait: const Duration(seconds: 20));
+      val = remoteConfig.getUXCamPercent();
       if (val == 0) return;
     }
-    final sessions = DSRemoteConfig.I.getUXCamSessions();
-    if (sessions != 0 && sessions < DSPrefs.I.getSessionId()) {
+    final sessions = remoteConfig.getUXCamSessions();
+    if (sessions != 0 && sessions < prefs.getSessionId()) {
       return;
     }
-    final minBuild = DSRemoteConfig.I.getUXCamMinBuild();
+    final minBuild = remoteConfig.getUXCamMinBuild();
     if (minBuild > 0) {
-      await DSConstants.I.waitForInit();
-      final build = DSConstants.I.buildNumber;
+      await constants.waitForInit();
+      final build = constants.buildNumber;
       if (minBuild > build) return;
     }
 
@@ -570,12 +597,13 @@ abstract class DSMetrica {
   /// Send yandex Id to Firebase if it was not send
   static Future<void> sendYandexDeviceId() async {
     if (kIsWeb || !Platform.isAndroid && !Platform.isIOS) return;
-
-    if (DSPrefs.I.isYandexDeviceIdSent()) return;
+    final prefs = _deps?.prefs;
+    if (prefs == null) return;
+    if (prefs.isYandexDeviceIdSent()) return;
     assert(yandexId.isNotEmpty);
     await FirebaseAnalytics.instance.setUserProperty(name: 'appmetrica_id', value: yandexId);
     await reportEventWithMap('set appmetrica_id', {'appmetrica_id': yandexId});
-    DSPrefs.I.setYandexDeviceIdSent(true);
+    prefs.setYandexDeviceIdSent(true);
   }
 
   /// Adds a [key]-[value] pair to or deletes it from the application error environment. The environment is shown in the crash and error report.
@@ -594,19 +622,23 @@ abstract class DSMetrica {
   static String _oncePerAppLifetimeEventKey(String eventName) => '${_oncePerAppLifetimePrefix}_$eventName';
 
   static bool _isEventSentLegacy(String eventName) {
-    return DSPrefs.I.internal.getString(_firstEventParam) == eventName;
+    final prefs = _deps?.prefs;
+    if (prefs == null) return false;
+    return prefs.internal.getString(_firstEventParam) == eventName;
   }
 
   static bool _isEventAlreadySendPerLifetime(String eventName) {
+    final prefs = _deps?.prefs;
+    if (prefs == null) return false;
     final key = _oncePerAppLifetimeEventKey(eventName);
-
-    return _isEventSentLegacy(eventName) || (DSPrefs.I.internal.getBool(key) ?? false);
+    return _isEventSentLegacy(eventName) || (prefs.internal.getBool(key) ?? false);
   }
 
   static void _setEventSendPerLifetime(String eventName) {
+    final prefs = _deps?.prefs;
+    if (prefs == null) return;
     final key = _oncePerAppLifetimeEventKey(eventName);
-
-    DSPrefs.I.internal.setBool(key, true);
+    prefs.internal.setBool(key, true);
   }
 }
 

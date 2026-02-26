@@ -1,3 +1,4 @@
+export 'core/contracts/ds_contracts.dart';
 export 'core/ds_constants.dart';
 export 'core/fimber/ds_fimber_service.dart';
 export 'core/fimber/ds_fimber_trees.dart';

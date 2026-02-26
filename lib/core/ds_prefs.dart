@@ -1,81 +1,45 @@
-import 'dart:async';
 
-import 'package:flutter/material.dart';
-import 'package:meta/meta.dart' as meta;
 import 'package:shared_preferences/shared_preferences.dart';
 
-abstract class DSPrefs extends ChangeNotifier {
-  SharedPreferences? _prefs;
-  SharedPreferences get internal => _prefs!;
+import 'contracts/ds_contracts.dart';
 
-  static DSPrefs? _instance;
+/// Реализация [IDSPrefs]. Приложение создаёт экземпляр, передавая [SharedPreferences].
+/// Реактивность (ChangeNotifier) при необходимости реализуется в приложении (например, Riverpod).
+class DSPrefs implements IDSPrefs {
+  DSPrefs(this._prefs);
 
-  static DSPrefs get I {
-    assert(_instance != null, 'Call DSPrefs() or its subclass before use');
-    return _instance!;
-  }
+  final SharedPreferences _prefs;
 
-  DSPrefs() {
-    assert(_instance == null);
-    _instance ??= this;
-  }
-
-  Future<void> init() async {
-    _prefs = await SharedPreferences.getInstance();
-  }
+  @override
+  SharedPreferences get internal => _prefs;
 
   void notifyAsync() {
-    Timer.run(() {
-      notifyListeners();
-    });
+    // Hook for app to observe changes if needed (e.g. Riverpod invalidation).
+    // No-op by default; app can subclass and override or use a callback.
   }
 
-  @protected
-  void setBool(String key, bool value) {
-    internal.setBool(key, value);
+  @override
+  int getSessionId() => _prefs.getInt('app_session_id') ?? 0;
+  @override
+  void setSessionId(int value) {
+    _prefs.setInt('app_session_id', value);
     notifyAsync();
   }
 
-  @protected
-  void setInt(String key, int value) {
-    internal.setInt(key, value);
-    notifyAsync();
-  }
-
-  @protected
-  void setDouble(String key, double value) {
-    internal.setDouble(key, value);
-    notifyAsync();
-  }
-
-  @protected
-  void setString(String key, String value) {
-    internal.setString(key, value);
-    notifyAsync();
-  }
-
-  @protected
-  void setStringList(String key, List<String> value) {
-    internal.setStringList(key, value);
-    notifyAsync();
-  }
-
-  @protected
-  void remove(String key) {
-    internal.remove(key);
-    notifyAsync();
-  }
-
-  int getSessionId() => internal.getInt('app_session_id') ?? 0;
-  // ignore:invalid_internal_annotation
-  @meta.internal
-  /// Use [DSMetrica.tryUpdateAppSessionId] instead
-  void setSessionId(int value) => setInt('app_session_id', value);
-
+  @override
   DateTime getAppLastUsed() =>
-      DateTime.fromMillisecondsSinceEpoch((internal.getInt('app_last_used') ?? 0) * 1000);
-  void setAppLastUsed(DateTime value) => setInt('app_last_used', value.millisecondsSinceEpoch ~/ 1000);
+      DateTime.fromMillisecondsSinceEpoch((_prefs.getInt('app_last_used') ?? 0) * 1000);
+  @override
+  void setAppLastUsed(DateTime value) {
+    _prefs.setInt('app_last_used', value.millisecondsSinceEpoch ~/ 1000);
+    notifyAsync();
+  }
 
-  bool isYandexDeviceIdSent() => internal.getBool('yandexDeviceIdSent') ?? false;
-  void setYandexDeviceIdSent(bool value) => setBool('yandexDeviceIdSent', value);
+  @override
+  bool isYandexDeviceIdSent() => _prefs.getBool('yandexDeviceIdSent') ?? false;
+  @override
+  void setYandexDeviceIdSent(bool value) {
+    _prefs.setBool('yandexDeviceIdSent', value);
+    notifyAsync();
+  }
 }

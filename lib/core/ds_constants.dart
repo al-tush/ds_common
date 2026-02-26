@@ -4,16 +4,16 @@ import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import 'contracts/ds_contracts.dart';
 import 'ds_logging.dart';
 
-class DSConstants {
-  static bool get isInitialized => _instance?._isInitialized ?? false;
-
-  static DSConstants? _instance;
-
-  static DSConstants get I {
-    assert(_instance != null, 'Call DSConstants(...) or its subclass before use');
-    return _instance!;
+class DSConstants implements IDSConstants {
+  DSConstants({required VoidCallback? then}) {
+    unawaited(() async {
+      await internalInit();
+      _isInitialized = true;
+      then?.call();
+    }());
   }
 
   static final startTime = DateTime.timestamp();
@@ -22,27 +22,20 @@ class DSConstants {
   @mustCallSuper
   Future<void> internalInit() async {
     packageInfo = await PackageInfo.fromPlatform();
-    // 3-number builds are internal (ex 1.4.12)
     if (packageInfo.version.split('.').length == 3) {
       logDebug('INTERNAL VERSION: ${packageInfo.version}');
       _isInternalVersion = true;
     }
   }
 
-  DSConstants({required VoidCallback? then}) {
-    assert(_instance == null);
-    _instance = this;
-    unawaited(() async {
-      await internalInit();
-      _isInitialized = true;
-      then?.call();
-    }());
-  }
-
   var _isInitialized = false;
   var _isInternalVersion = false;
 
-  Future<void> waitForInit({final maxWait = const Duration(seconds: 5)}) async {
+  @override
+  bool get isInitialized => _isInitialized;
+
+  @override
+  Future<void> waitForInit({Duration maxWait = const Duration(seconds: 5)}) async {
     final start = DateTime.now();
     while (true) {
       if (isInitialized) break;
@@ -54,7 +47,7 @@ class DSConstants {
     }
   }
 
-  /// is app build internal (3-number builds are internal - ex. 1.4.12; 2-number are production - 1.0, 3.1, etc)
+  @override
   bool get isInternalVersion {
     if (!_isInitialized) {
       const err = 'Wait for init';
@@ -64,15 +57,17 @@ class DSConstants {
     return _isInternalVersion;
   }
 
+  @override
   bool get isInternalVersionOpt => _isInternalVersion;
 
-  /// is app build production (2-number builds are production - 1.0, 3.1, etc)
   bool get isProductionVersion => !isInternalVersion;
 
+  @override
   late final PackageInfo packageInfo;
 
   int? _buildNumber;
 
+  @override
   int get buildNumber {
     if (!isInitialized) {
       const err = 'Wait for initialization DSConstants firstly';
@@ -80,9 +75,7 @@ class DSConstants {
       Fimber.e(err, stacktrace: StackTrace.current);
       return 0;
     }
-
     if (_buildNumber != null) return _buildNumber!;
-
     final build = int.tryParse(packageInfo.buildNumber);
     if (build == null || packageInfo.buildNumber != build.toString()) {
       const err = 'Failed to parse build';

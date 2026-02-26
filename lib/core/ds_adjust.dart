@@ -9,7 +9,7 @@ import 'package:adjust_sdk/adjust_event.dart';
 import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:flutter/foundation.dart';
 
-import 'ds_constants.dart';
+import 'contracts/ds_contracts.dart';
 import 'ds_metrica.dart';
 import 'ds_primitives.dart';
 
@@ -27,9 +27,9 @@ abstract class DSAdjust {
 
   static final _initCallbacks = <void Function()>{};
 
-  /// Initialize DSAdjust
-  /// [adjustKey] - API key of Adjust
+  /// Initialize DSAdjust. [constants] — для waitForInit и isInternalVersion.
   static Future<void> init({
+    required IDSConstants constants,
     required String adjustKey,
     bool? launchDeferredDeeplink,
     bool? launchLinkMeEnabled,
@@ -40,9 +40,9 @@ abstract class DSAdjust {
       return;
     }
 
-    await DSConstants.I.waitForInit();
+    await constants.waitForInit();
     final config = AdjustConfig(
-        adjustKey, DSConstants.I.isInternalVersion ? AdjustEnvironment.sandbox : AdjustEnvironment.production);
+        adjustKey, constants.isInternalVersion ? AdjustEnvironment.sandbox : AdjustEnvironment.production);
     config.logLevel = AdjustLogLevel.verbose;
     config.attributionCallback = _setAdjustAttribution;
     config.isDeferredDeeplinkOpeningEnabled = launchDeferredDeeplink;

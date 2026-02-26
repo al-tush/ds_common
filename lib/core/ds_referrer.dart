@@ -7,40 +7,48 @@ import 'package:ds_common/core/fimber/ds_fimber_base.dart';
 import 'package:firebase_app_installations/firebase_app_installations.dart';
 import 'package:http/http.dart' as http;
 
-import 'ds_constants.dart';
+import 'contracts/ds_contracts.dart';
 import 'ds_internal.dart';
-import 'ds_metrica.dart';
-import 'ds_prefs.dart';
-import 'ds_remote_config.dart';
 
-typedef DSReferrerCallback = void Function(Map<String, String> fields);
+typedef DSReferrerReportEvent = void Function(String name, {Map<String, Object>? attributes, Map<String, String>? fbAttributes});
 
 /// [DSReferrer] helps to separate organic and partner traffic.
-/// Also it send referrer data to Firebase collection installs_full_referrer and DSMetrica statistics.
-class DSReferrer {
-  static var _isInitialized = false;
-  static bool get isInitialized => _isInitialized;
+/// Create via constructor; pass [IDSPrefs], [IDSConstants], optional [IDSRemoteConfig] and [reportEvent].
+class DSReferrer implements IDSReferrer {
+  DSReferrer({
+    required IDSPrefs prefs,
+    required IDSConstants constants,
+    IDSRemoteConfig? remoteConfig,
+    DSReferrerReportEvent? reportEvent,
+  })  : _prefs = prefs,
+        _constants = constants,
+        _remoteConfig = remoteConfig,
+        _reportEvent = reportEvent ?? _noopReport;
 
-  DSReferrer._();
+  static void _noopReport(String name, {Map<String, Object>? attributes, Map<String, String>? fbAttributes}) {}
 
-  static final I = DSReferrer._();
+  final IDSPrefs _prefs;
+  final IDSConstants _constants;
+  final IDSRemoteConfig? _remoteConfig;
+  final DSReferrerReportEvent _reportEvent;
 
-  // Names retained for backward compatibility
-  final _isSentKey = 'installReferrer.isSaved';
-  final _referrerKey = 'installReferrer.referrer';
+  static const _isSentKey = 'installReferrer.isSaved';
+  static const _referrerKey = 'installReferrer.referrer';
+
+  var _isInitialized = false;
+  @override
+  bool get isInitialized => _isInitialized;
 
   final _changedCallbacks = <DSReferrerCallback>{};
 
   String? _faultClientIp;
   String? get faultClientIp => _faultClientIp;
 
-  /// Call this method is you don't need referrer in your app
   void noReferrer() {
     assert(!_isInitialized, 'Duplicate initialization');
     _isInitialized = true;
   }
 
-  /// Call this method at the start of app
   Future<void> trySave({
     @Deprecated('use fbRegion')
     final String iosRegion = '',
@@ -59,60 +67,49 @@ class DSReferrer {
     _isInitialized = true;
 
     try {
-      final prefs = DSPrefs.I.internal;
-
-      var referrer = prefs.getString(_referrerKey) ?? '';
+      var referrer = _prefs.internal.getString(_referrerKey) ?? '';
       try {
         if (referrer.isEmpty) {
           final res = await Future.wait<String>([
             if (Platform.isIOS || forceFBReferrer)
-                  () async {
-                assert(region.isNotEmpty || fbV2Url.isNotEmpty, 'fbRegion should be assigned (get_referrer cloud function must be deployed)');
+              () async {
+                assert(region.isNotEmpty || fbV2Url.isNotEmpty, 'fbRegion should be assigned');
                 try {
                   final startTime = DateTime.timestamp();
                   final int respCode;
                   if (fbV2Url.isEmpty) {
-                    final res = await FirebaseFunctions.instanceFor(region: region).httpsCallable('get_referrer').call<String>();
+                    final r = await FirebaseFunctions.instanceFor(region: region).httpsCallable('get_referrer').call<String>();
                     respCode = 200;
-                    referrer = res.data;
+                    referrer = r.data;
                   } else {
-                    final res = await http.get(
-                      Uri.parse(fbV2Url),
-                    );
-                    respCode = res.statusCode;
-                    if (respCode == 200) {
-                      referrer = res.body;
-                    }
-                    if (respCode == 404) {
-                      _faultClientIp = res.body;
-                    }
+                    final r = await http.get(Uri.parse(fbV2Url));
+                    respCode = r.statusCode;
+                    if (respCode == 200) referrer = r.body;
+                    if (respCode == 404) _faultClientIp = r.body;
                   }
                   final loadTime = DateTime.timestamp().difference(startTime);
-                  DSMetrica.reportEvent('fb_referrer', attributes: {
+                  _reportEvent('fb_referrer', attributes: {
                     'value': referrer,
                     'resp_code': respCode,
-                    if (_faultClientIp != null)
-                      'fault_client_ip': _faultClientIp.toString(),
+                    if (_faultClientIp != null) 'fault_client_ip': _faultClientIp.toString(),
                     'referrer_load_seconds': loadTime.inSeconds,
                     'referrer_load_milliseconds': loadTime.inMilliseconds,
                   });
                   final p = referrer.indexOf('?');
-                  if (p >= 0) {
-                    referrer = referrer.substring(p + 1);
-                  }
+                  if (p >= 0) referrer = referrer.substring(p + 1);
                   return referrer;
                 } catch (e, stack) {
                   Fimber.e('fb_referrer $e', stacktrace: stack);
                   return 'err_fb';
                 }
-              } (),
+              }(),
             if (Platform.isAndroid)
-                  () async {
+              () async {
                 try {
                   final startTime = DateTime.timestamp();
-                  final ref =  await DSInternal.platform.invokeMethod('fetchInstallReferrer') as String;
+                  final ref = await DSInternal.platform.invokeMethod('fetchInstallReferrer') as String;
                   final loadTime = DateTime.timestamp().difference(startTime);
-                  DSMetrica.reportEvent('android_referrer', attributes: {
+                  _reportEvent('android_referrer', attributes: {
                     'value': referrer,
                     'referrer_load_seconds': loadTime.inSeconds,
                     'referrer_load_milliseconds': loadTime.inMilliseconds,
@@ -122,59 +119,58 @@ class DSReferrer {
                   Fimber.e('android_referrer $e', stacktrace: stack);
                   return 'err_android';
                 }
-              } (),
+              }(),
           ]);
           referrer = res.join('&');
-          await prefs.setString(_referrerKey, referrer);
+          _prefs.internal.setString(_referrerKey, referrer);
         }
 
         Fimber.i('ds_referrer=$referrer');
 
-        if (!DSConstants.I.isInternalVersion) {
+        if (!_constants.isInternalVersion && _remoteConfig != null) {
           if (isKnownReferrer()) {
-            DSRemoteConfig.I.setPostfix('_r');
+            _remoteConfig.setPostfix('_r');
           } else {
-            DSRemoteConfig.I.setPostfix('_e');
+            _remoteConfig.setPostfix('_e');
           }
         }
 
-        // Send installs_full_referrer once. Only for Android platform
-        if (prefs.getBool(_isSentKey) == true || !Platform.isAndroid) return;
-
+        if (_prefs.internal.getBool(_isSentKey) == true || !Platform.isAndroid) return;
         if (referrer == '') return;
         final data = Uri.splitQueryString(referrer);
         final utmSource = data['utm_source'];
         if (utmSource == null) return;
 
         final fid = await FirebaseInstallations.instance.getId();
-
-        unawaited(FirebaseFirestore.instance.collection('installs_full_referrer').add({
-          'bundle': DSConstants.I.packageInfo.packageName,
+        unawaited(FirebaseFirestore.instance
+            .collection('installs_full_referrer')
+            .add({
+          'bundle': _constants.packageInfo.packageName,
           'referrer': referrer,
           'referrer_len': referrer.length,
           'utm_source': utmSource,
           'firebase_id': fid,
           'timestamp': FieldValue.serverTimestamp(),
-        }).then((value) {
-          prefs.setBool(_isSentKey, true);
+        }).then((_) {
+          _prefs.internal.setBool(_isSentKey, true);
         }).timeout(const Duration(minutes: 1)));
 
-        {
-          final String utmSource = data['utm_source'] ?? '';
-          final isValidFb = utmSource.contains('apps.facebook.com') || utmSource.contains('apps.instagram.com');
-
-          DSMetrica.reportEvent('install_params', fbSend: true, fbAttributes: {
-            'gclid': data['gclid'] ?? '',
-            'ad_imp': data['adimp'] ?? '',
-            'utm_source': utmSource,
-            'utm_content': data['utm_content'] ?? '',
-            'is_valid_fb_flow': isValidFb.toString(),
-            'campaign': data['utm_campaign'] ?? 'unknown',
-            'adjust_external_click_id': adjustExternalClickId,
-            if (installParamsExtra != null)
-              ...installParamsExtra(data)
-          });
+        final isValidFb = utmSource.contains('apps.facebook.com') || utmSource.contains('apps.instagram.com');
+        final fbAttrs = <String, String>{
+          'gclid': data['gclid'] ?? '',
+          'ad_imp': data['adimp'] ?? '',
+          'utm_source': utmSource,
+          'utm_content': data['utm_content'] ?? '',
+          'is_valid_fb_flow': isValidFb.toString(),
+          'campaign': data['utm_campaign'] ?? 'unknown',
+          'adjust_external_click_id': adjustExternalClickId,
+        };
+        if (installParamsExtra != null) {
+          for (final e in installParamsExtra(data).entries) {
+            fbAttrs[e.key] = e.value.toString();
+          }
         }
+        _reportEvent('install_params', fbAttributes: fbAttrs);
       } catch (e, stack) {
         Fimber.e('$e: (referrer: $referrer)', stacktrace: stack);
       }
@@ -186,53 +182,44 @@ class DSReferrer {
     }
   }
 
-  /// Add handler for any referrer change
+  @override
   void registerChangedCallback(DSReferrerCallback callback) {
     _changedCallbacks.add(callback);
-    if (_isInitialized) {
-      callback(I.getReferrerFields());
-    }
+    if (_isInitialized) callback(getReferrerFields());
   }
 
-  /// Remove handler for Adjust -> attributionCallback
+  @override
   void unregisterAttributionCallback(DSReferrerCallback callback) {
     _changedCallbacks.remove(callback);
   }
 
   var _getFieldsError = false;
 
-  /// Get stored referrer fields
+  @override
   Map<String, String> getReferrerFields() {
-    var referrer = 'notInitialized';
     try {
-      referrer = DSPrefs.I.internal.getString(_referrerKey) ?? '';
+      final referrer = _prefs.internal.getString(_referrerKey) ?? '';
       return Uri.splitQueryString(referrer);
     } catch (e, stack) {
       if (!_getFieldsError) {
         _getFieldsError = true;
-        Fimber.e('$e: (referrer: $referrer)', stacktrace: stack);
+        Fimber.e('$e', stacktrace: stack);
       }
       return {};
     }
   }
 
-  final _ourReferrerPattern = RegExp('^\\w+_\\d+_\\d+');
+  static final _ourReferrerPattern = RegExp(r'^\w+_\d+_\d+');
 
-  /// Is current install from known partner
   bool isKnownReferrer() {
     try {
       final data = getReferrerFields();
-      if (Platform.isIOS) {
-        if (data.containsKey('partner')) return true;
-        return false;
-      }
-
+      if (Platform.isIOS) return data.containsKey('partner');
       if ((data['gclid'] ?? '').isNotEmpty) return true;
       final utmSource = data['utm_source'] ?? '';
       if (_ourReferrerPattern.hasMatch(utmSource)) return true;
       if (utmSource.contains('apps.facebook.com') || utmSource.contains('apps.instagram.com')) return true;
       if (adjustExternalClickId.isNotEmpty) return true;
-
       return false;
     } catch (e, stack) {
       Fimber.e('$e', stacktrace: stack);
@@ -240,12 +227,10 @@ class DSReferrer {
     }
   }
 
-  /// Is current install  has valid utm (installed from partner)
   bool isValidUtm() {
     final data = getReferrerFields();
     final utmSource = data['utm_source'];
-    if (utmSource == null) return false;
-    return _ourReferrerPattern.hasMatch(utmSource);
+    return utmSource != null && _ourReferrerPattern.hasMatch(utmSource);
   }
 
   String get adjustExternalClickId => getReferrerFields()['adjust_external_click_id'] ?? '';
